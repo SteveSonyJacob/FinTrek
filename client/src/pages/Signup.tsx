@@ -274,7 +274,7 @@ const Signup = () => {
               {/* Signup Button */}
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-primary hover:scale-105 transition-transform shadow-button"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 disabled={isLoading}
               >
                 {isLoading ? (
