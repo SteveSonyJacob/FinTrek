@@ -86,37 +86,61 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --primary-light: 210 40% 95%;
-    --primary-glow: 210 40% 90%;
+    /* Enhanced Primary - Brighter Green for Dark Mode */
+    --primary: 142 72% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 142 72% 55%;
+    --primary-glow: 142 72% 65%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --secondary-light: 217.2 32.6% 20%;
-    --secondary-glow: 217.2 32.6% 25%;
+    /* Enhanced Secondary - Bright Gold for Dark Mode */
+    --secondary: 45 93% 58%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --secondary-light: 45 93% 68%;
+    --secondary-glow: 45 93% 78%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Better Muted Colors */
+    --muted: 217.2 32.6% 25%;
+    --muted-foreground: 215 20.2% 75%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --accent-light: 217.2 32.6% 20%;
+    /* Enhanced Accent - Bright Blue */
+    --accent: 217 91% 70%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --accent-light: 217 91% 80%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    /* Better Success Colors */
+    --success: 142 72% 50%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 222.2 84% 4.9%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --destructive: 0 84% 70%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Gamification colors for dark mode */
-    --xp-bar: 142 72% 35%;
-    --streak-fire: 25 95% 60%;
-    --badge-bronze: 30 67% 50%;
-    --badge-silver: 220 9% 80%;
-    --badge-gold: 45 93% 55%;
-    --badge-diamond: 220 91% 85%;
+    /* Enhanced Border and Input */
+    --border: 217.2 32.6% 30%;
+    --input: 217.2 32.6% 25%;
+    --ring: 142 72% 55%;
+
+    /* Brighter Gamification Colors for Dark Mode */
+    --xp-bar: 142 72% 55%;
+    --streak-fire: 25 95% 70%;
+    --badge-bronze: 30 67% 60%;
+    --badge-silver: 220 15% 85%;
+    --badge-gold: 45 93% 65%;
+    --badge-diamond: 220 91% 90%;
+
+    /* Enhanced Gradients for Dark Mode */
+    --gradient-primary: linear-gradient(135deg, hsl(142 72% 45%), hsl(142 72% 60%));
+    --gradient-secondary: linear-gradient(135deg, hsl(45 93% 58%), hsl(45 93% 70%));
+    --gradient-success: linear-gradient(135deg, hsl(142 72% 50%) 0%, hsl(142 72% 65%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(142 72% 45%) 0%, hsl(217 91% 70%) 50%, hsl(45 93% 58%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(217.2 32.6% 20% / 0.9), hsl(217.2 32.6% 15% / 0.7));
+
+    /* Enhanced Shadows for Dark Mode */
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.3);
+    --shadow-button: 0 4px 14px hsl(142 72% 45% / 0.3);
+    --shadow-glow: 0 0 30px hsl(142 72% 55% / 0.5);
+    --shadow-badge: 0 4px 12px hsl(45 93% 58% / 0.4);
   }
 }
 
