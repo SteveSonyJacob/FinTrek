@@ -29,21 +29,28 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppLayout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/learning" element={<Learning />} />
-              <Route path="/lesson/:id" element={<Lesson />} />
-              <Route path="/quiz/:id" element={<Quiz />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppLayout>
+          <Routes>
+            {/* Authentication Routes - Outside AppLayout */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            
+            {/* App Routes - Inside AppLayout */}
+            <Route path="/*" element={
+              <AppLayout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/learning" element={<Learning />} />
+                  <Route path="/lesson/:id" element={<Lesson />} />
+                  <Route path="/quiz/:id" element={<Quiz />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/community" element={<Community />} />
+                  <Route path="/profile" element={<Profile />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AppLayout>
+            } />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
