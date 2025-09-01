@@ -28,9 +28,9 @@ const Index = () => {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 text-center space-y-8">
         <div className="space-y-4">
-          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-            Master Your Financial Future
-          </h1>
+        <h1 className="text-5xl md:text-6xl font-bold bg-gradient-hero bg-clip-text text-transparent">
+          Master Your Financial Future with FinTrek
+        </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             Learn investing, trading, and money management through gamified lessons, 
             interactive quizzes, and a supportive community. Earn points, unlock badges, 

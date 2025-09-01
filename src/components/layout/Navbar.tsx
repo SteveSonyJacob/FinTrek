@@ -10,10 +10,11 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PointsDisplay from '../gamification/PointsDisplay';
+import { ThemeToggle } from '../ui/theme-toggle';
 
 /**
- * Main navigation component with gamified elements
- * Features: Active page highlighting, points display, responsive design
+ * Main navigation component with gamified elements and theme toggle
+ * Features: Active page highlighting, points display, responsive design, dark/light mode
  */
 const Navbar = () => {
   const location = useLocation();
@@ -38,7 +39,7 @@ const Navbar = () => {
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center shadow-badge">
               <Coins className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="hidden sm:block">FinanceAcademy</span>
+            <span className="hidden sm:block">FinTrek</span>
           </Link>
 
           {/* Navigation Links */}
@@ -65,13 +66,14 @@ const Navbar = () => {
             })}
           </div>
 
-          {/* Points Display */}
+          {/* Right Side: Points, Streak, Theme Toggle */}
           <div className="flex items-center space-x-4">
             <PointsDisplay points={2847} />
             <div className="flex items-center space-x-1 text-streak font-bold">
               <Flame className="w-5 h-5" />
               <span className="text-sm">7</span>
             </div>
+            <ThemeToggle />
           </div>
         </div>
       </div>
