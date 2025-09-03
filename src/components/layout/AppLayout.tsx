@@ -1,16 +1,15 @@
 import { ReactNode } from 'react';
 import Navbar from './Navbar';
+import { Outlet } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-interface AppLayoutProps {
-  children: ReactNode;
-}
+
 
 /**
  * Main application layout wrapper
  * Provides consistent navigation and styling across all pages
  */
-const AppLayout = ({ children }: AppLayoutProps) => {
+const AppLayout = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -18,7 +17,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         "pt-16", // Account for fixed navbar height
         "animate-slide-up"
       )}>
-        {children}
+        <Outlet/>
       </main>
     </div>
   );

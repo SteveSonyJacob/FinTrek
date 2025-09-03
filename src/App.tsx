@@ -42,23 +42,16 @@ const App = () => {
                   <Route path="*" element={<Navigate to="/auth" replace />} />
                 </>
               ) : (
-                <Route
-                  path="/*"
-                  element={
-                    <AppLayout>
-                      <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/learning" element={<Learning />} />
-                        <Route path="/lesson/:id" element={<Lesson />} />
-                        <Route path="/quiz/:id" element={<Quiz />} />
-                        <Route path="/leaderboard" element={<Leaderboard />} />
-                        <Route path="/community" element={<Community />} />
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </AppLayout>
-                  }
-                />
+                <Route path="/" element={<AppLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="learning" element={<Learning />} />
+                  <Route path="lesson/:id" element={<Lesson />} />
+                  <Route path="quiz/:id" element={<Quiz />} />
+                  <Route path="leaderboard" element={<Leaderboard />} />
+                  <Route path="community" element={<Community />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
               )}
             </Routes>
           </BrowserRouter>
