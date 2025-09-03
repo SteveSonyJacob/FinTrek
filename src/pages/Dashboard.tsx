@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import ProgressBar from '@/components/gamification/ProgressBar';
 import Badge from '@/components/gamification/Badge';
 import PointsDisplay from '@/components/gamification/PointsDisplay';
+import { useUser } from '@supabase/auth-helpers-react';
 import { 
   BookOpen, 
   Target, 
@@ -21,6 +22,8 @@ import { Link } from 'react-router-dom';
  */
 const Dashboard = () => {
   // Mock data - replace with real API calls
+  const user = useUser()
+
   const userStats = {
     totalPoints: 2847,
     currentStreak: 7,
@@ -50,7 +53,7 @@ const Dashboard = () => {
       {/* Welcome Header */}
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-          Welcome Back, Sarah! 🚀
+          Welcome Back, {user?.email}
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           You're on fire! Keep up the momentum and continue your journey to financial mastery.
