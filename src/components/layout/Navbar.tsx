@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+﻿import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, 
   BookOpen, 
@@ -11,7 +11,8 @@ import {
 import { cn } from '@/lib/utils';
 import PointsDisplay from '../gamification/PointsDisplay';
 import { ThemeToggle } from '../ui/theme-toggle';
-import { useUserPoints } from '@/hooks/useUserData';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Main navigation component with gamified elements and theme toggle
@@ -19,10 +20,10 @@ import { useUserPoints } from '@/hooks/useUserData';
  */
 const Navbar = () => {
   const location = useLocation();
-  const { points, loading: pointsLoading } = useUserPoints();
+  const navigate = useNavigate();
   
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: Home },
+    { path: '/dashboard', label: 'Dashboard', icon: Home },
     { path: '/learning', label: 'Learn', icon: BookOpen },
     { path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
     { path: '/community', label: 'Community', icon: Users },
@@ -35,7 +36,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
           <Link 
-            to="/" 
+            to="/dashboard" 
             className="flex items-center space-x-2 text-primary font-bold text-xl hover:text-primary-light transition-colors"
           >
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center shadow-badge">
@@ -70,16 +71,22 @@ const Navbar = () => {
 
           {/* Right Side: Points, Streak, Theme Toggle */}
           <div className="flex items-center space-x-4">
-            {pointsLoading ? (
-              <div className="w-16 h-6 bg-muted animate-pulse rounded"></div>
-            ) : (
-              <PointsDisplay points={points?.total_points || 0} />
-            )}
+            <PointsDisplay points={2847} />
             <div className="flex items-center space-x-1 text-streak font-bold">
               <Flame className="w-5 h-5" />
-              <span className="text-sm">{points?.current_streak || 0}</span>
+              <span className="text-sm">7</span>
             </div>
             <ThemeToggle />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate('/auth', { replace: true });
+              }}
+            >
+              Logout
+            </Button>
           </div>
         </div>
       </div>

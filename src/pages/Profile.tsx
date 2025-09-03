@@ -1,6 +1,7 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+﻿import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Badge from '@/components/gamification/Badge';
@@ -18,24 +19,44 @@ import {
   Settings,
   Share2
 } from 'lucide-react';
-import { useUserProfile, useUserAchievements, useUserActivity } from '@/hooks/useProfile';
+import { useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * User profile page with achievements, stats, and settings
  * Features: Profile editing, achievement showcase, learning statistics, progress tracking
  */
 const Profile = () => {
-  // Dynamic data from Supabase
-  const { profile: userData, loading: profileLoading } = useUserProfile();
-  const { achievements, loading: achievementsLoading } = useUserAchievements();
-  const { activities: recentActivity, loading: activityLoading } = useUserActivity();
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [age, setAge] = useState<string>('');
+  const [phone, setPhone] = useState('');
 
-  // Mock data for reference (remove this later)
-  const mockUserData = {
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@email.com',
+  useEffect(() => {
+    let isMounted = true;
+    async function load() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!isMounted) return;
+      const user = session?.user;
+      if (user) {
+        setEmail(user.email ?? '');
+        const meta = user.user_metadata as any;
+        setFullName(meta?.full_name ?? '');
+        setAge(meta?.age != null ? String(meta.age) : '');
+        setPhone(meta?.phone ?? '');
+      }
+      setLoading(false);
+    }
+    load();
+    return () => { isMounted = false; };
+  }, []);
+
+  const userData = useMemo(() => ({
+    name: fullName || 'Your Name',
+    email: email || 'you@example.com',
     avatar: '',
-    joinDate: 'March 2024',
+    joinDate: '—',
     level: 'Intermediate Trader',
     nextLevel: 'Advanced Trader',
     levelProgress: 68,
@@ -47,38 +68,44 @@ const Profile = () => {
     quizzesTaken: 32,
     correctAnswers: 186,
     totalAnswers: 240,
-    timeSpent: 12.5 // hours
-  };
+    timeSpent: 12.5
+  }), [fullName, email]);
 
-  // Mock data for learning goals
-  const mockRecentActivity = [
+  const achievements = [
+    { type: 'gold' as const, title: 'Quiz Master', description: 'Perfect score on 5 quizzes', icon: 'award' as const, earned: true },
+    { type: 'silver' as const, title: 'Week Warrior', description: '7-day learning streak', icon: 'star' as const, earned: true },
+    { type: 'bronze' as const, title: 'First Steps', description: 'Complete first lesson', icon: 'zap' as const, earned: true },
+    { type: 'gold' as const, title: 'Knowledge Seeker', description: 'Complete 20 lessons', icon: 'crown' as const, earned: true },
+    { type: 'silver' as const, title: 'Community Helper', description: 'Help 10 community members', icon: 'award' as const, earned: true },
+    { type: 'diamond' as const, title: 'Finance Master', description: 'Complete all modules', icon: 'crown' as const, earned: false },
+    { type: 'gold' as const, title: 'Streak Legend', description: '30-day learning streak', icon: 'star' as const, earned: false },
+    { type: 'silver' as const, title: 'Quiz Champion', description: 'Top 10% in weekly quiz', icon: 'award' as const, earned: false }
+  ];
+
+  const recentActivity = [
     { 
-      id: '1',
-      created_at: new Date().toISOString(), 
+      date: new Date(), 
       activity: 'Completed lesson "Investment Basics"', 
       points: 50, 
-      activity_type: 'lesson' 
+      type: 'lesson' 
     },
     { 
-      id: '2',
-      created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), 
+      date: new Date(Date.now() - 1 * 60 * 60 * 1000), 
       activity: 'Perfect score on Daily Quiz', 
       points: 100, 
-      activity_type: 'quiz' 
+      type: 'quiz' 
     },
     { 
-      id: '3',
-      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), 
+      date: new Date(Date.now() - 2 * 60 * 60 * 1000), 
       activity: 'Started "Trading Strategies" module', 
       points: 25, 
-      activity_type: 'milestone' 
+      type: 'milestone' 
     },
     { 
-      id: '4',
-      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), 
+      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), 
       activity: 'Earned "Week Warrior" badge', 
       points: 200, 
-      activity_type: 'achievement' 
+      type: 'achievement' 
     }
   ];
 
@@ -97,8 +124,7 @@ const Profile = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (date: Date) => {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
     
@@ -106,27 +132,6 @@ const Profile = () => {
     if (diffInHours < 24) return `${diffInHours}h ago`;
     return `${Math.floor(diffInHours / 24)}d ago`;
   };
-
-  if (profileLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground mt-2">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!userData) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Please log in to view your profile.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -181,7 +186,7 @@ const Profile = () => {
               </div>
               
               <div className="text-center p-4 bg-gradient-card rounded-lg border shadow-card">
-                <div className="font-bold text-secondary text-lg">{userData.quizAccuracy}%</div>
+                <div className="font-bold text-secondary text-lg">{Math.round((userData.correctAnswers / userData.totalAnswers) * 100)}%</div>
                 <div className="text-xs text-muted-foreground">Quiz Accuracy</div>
               </div>
             </div>
@@ -232,25 +237,19 @@ const Profile = () => {
                 <CardDescription>Badges you've unlocked on your learning journey</CardDescription>
               </CardHeader>
               <CardContent>
-                {achievementsLoading ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-4">
-                    {achievements.filter(badge => badge.earned).map((badge, index) => (
-                      <Badge
-                        key={index}
-                        type={badge.type as any}
-                        title={badge.title}
-                        description={badge.description}
-                        icon={badge.icon as any}
-                        earned={badge.earned}
-                        size="md"
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="grid grid-cols-3 gap-4">
+                  {achievements.filter(badge => badge.earned).map((badge, index) => (
+                    <Badge
+                      key={index}
+                      type={badge.type}
+                      title={badge.title}
+                      description={badge.description}
+                      icon={badge.icon}
+                      earned={badge.earned}
+                      size="md"
+                    />
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
@@ -260,25 +259,19 @@ const Profile = () => {
                 <CardDescription>Badges you can earn next</CardDescription>
               </CardHeader>
               <CardContent>
-                {achievementsLoading ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-4">
-                    {achievements.filter(badge => !badge.earned).map((badge, index) => (
-                      <Badge
-                        key={index}
-                        type={badge.type as any}
-                        title={badge.title}
-                        description={badge.description}
-                        icon={badge.icon as any}
-                        earned={badge.earned}
-                        size="md"
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="grid grid-cols-3 gap-4">
+                  {achievements.filter(badge => !badge.earned).map((badge, index) => (
+                    <Badge
+                      key={index}
+                      type={badge.type}
+                      title={badge.title}
+                      description={badge.description}
+                      icon={badge.icon}
+                      earned={badge.earned}
+                      size="md"
+                    />
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -316,30 +309,20 @@ const Profile = () => {
               <CardDescription>Your learning progress over the past few days</CardDescription>
             </CardHeader>
             <CardContent>
-              {activityLoading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                </div>
-              ) : recentActivity.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No recent activity. Start learning to see your progress here!</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div key={activity.id || index} className="flex items-center justify-between p-4 border rounded-lg bg-gradient-card">
-                      <div className="flex items-center space-x-3">
-                        {getActivityIcon(activity.activity_type)}
-                        <div>
-                          <p className="font-medium">{activity.activity}</p>
-                          <p className="text-sm text-muted-foreground">{formatDate(activity.created_at)}</p>
-                        </div>
+              <div className="space-y-4">
+                {recentActivity.map((activity, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg bg-gradient-card">
+                    <div className="flex items-center space-x-3">
+                      {getActivityIcon(activity.type)}
+                      <div>
+                        <p className="font-medium">{activity.activity}</p>
+                        <p className="text-sm text-muted-foreground">{formatDate(activity.date)}</p>
                       </div>
-                      <PointsDisplay points={activity.points} size="sm" />
                     </div>
-                  ))}
-                </div>
-              )}
+                    <PointsDisplay points={activity.points} size="sm" />
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -383,16 +366,44 @@ const Profile = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Full Name</label>
-                  <Input value={userData.name} />
+                  <Label htmlFor="profile-fullname" className="text-sm font-medium">Full Name</Label>
+                  <Input id="profile-fullname" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
-                  <Input value={userData.email} />
+                  <Label htmlFor="profile-email" className="text-sm font-medium">Email</Label>
+                  <Input id="profile-email" value={email} disabled />
                 </div>
-                <Button className="w-full bg-gradient-primary">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-age" className="text-sm font-medium">Age</Label>
+                    <Input id="profile-age" type="number" value={age} onChange={(e) => setAge(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-phone" className="text-sm font-medium">Phone Number</Label>
+                    <Input id="profile-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  </div>
+                </div>
+                <Button
+                  className="w-full bg-gradient-primary"
+                  onClick={async () => {
+                    setLoading(true);
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const current = session?.user;
+                    if (current) {
+                      await supabase.auth.updateUser({
+                        data: {
+                          full_name: fullName,
+                          age: age ? Number(age) : null,
+                          phone: phone || null,
+                        }
+                      });
+                    }
+                    setLoading(false);
+                  }}
+                  disabled={loading}
+                >
                   <User className="w-4 h-4 mr-2" />
-                  Update Profile
+                  {loading ? 'Saving…' : 'Update Profile'}
                 </Button>
               </CardContent>
             </Card>

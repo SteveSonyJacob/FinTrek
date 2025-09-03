@@ -83,7 +83,7 @@ const Dashboard = () => {
       {/* Welcome Header */}
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-          Welcome Back, {user?.email}
+          Welcome Back, {user?.user_metadata?.full_name || user?.email}
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           You're on fire! Keep up the momentum and continue your journey to financial mastery.

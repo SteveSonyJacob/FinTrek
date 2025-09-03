@@ -1,93 +1,142 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { useUser, useSession } from '@supabase/auth-helpers-react';
-import { Coins, AlertCircle, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { User, Session } from '@supabase/supabase-js';
+import { Loader2, LogIn, UserPlus, TrendingUp } from 'lucide-react';
 
+/**
+ * Authentication page with login and signup functionality
+ * Features: Email/password auth, error handling, auto-redirect for authenticated users
+ */
 const Auth = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const user = useUser();
-  const session = useSession();
   const navigate = useNavigate();
 
+  // Auth state management
   useEffect(() => {
-    if (session && user) {
-      navigate('/');
-    }
-  }, [session, user, navigate]);
-
-  const handleSignUp = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Redirect authenticated users to dashboard
+        if (session?.user) {
+          navigate('/');
         }
-      });
+      }
+    );
 
-      if (error) throw error;
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      // Redirect if already authenticated
+      if (session?.user) {
+        navigate('/');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSignUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    age: number | null,
+    phone: string | null
+  ) => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          full_name: fullName,
+          age,
+          phone,
+        }
+      }
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
       setSuccess('Check your email for the confirmation link!');
-      toast.success('Account created! Check your email to confirm.');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'An error occurred during sign up';
-      setError(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const handleSignIn = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (error) throw error;
-      toast.success('Welcome back!');
-      navigate('/');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'An error occurred during sign in';
-      setError(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
+    if (error) {
+      setError(error.message);
     }
+    setLoading(false);
   };
 
-  const AuthForm = ({ mode, onSubmit }: { mode: 'signin' | 'signup', onSubmit: (email: string, password: string) => Promise<void> }) => {
+  const AuthForm = ({ mode }: { mode: 'signin' | 'signup' }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [age, setAge] = useState<string>('');
+    const [phone, setPhone] = useState('');
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      if (!email || !password) {
-        setError('Please fill in all fields');
-        return;
+      if (mode === 'signin') {
+        handleSignIn(email, password);
+      } else {
+        const parsedAge = age ? Number(age) : null;
+        handleSignUp(email, password, fullName, Number.isFinite(parsedAge as number) ? parsedAge : null, phone || null);
       }
-      await onSubmit(email, password);
     };
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
+        {mode === 'signup' && (
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input
+              id="fullName"
+              type="text"
+              placeholder="Your full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              className="transition-all focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+        )}
+
         <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium">Email</label>
+          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
@@ -95,10 +144,11 @@ const Auth = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            className="transition-all focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium">Password</label>
+          <Label htmlFor="password">Password</Label>
           <Input
             id="password"
             type="password"
@@ -107,67 +157,134 @@ const Auth = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
+            className="transition-all focus:ring-2 focus:ring-primary/20"
           />
         </div>
-        <Button type="submit" className="w-full bg-gradient-primary" disabled={loading}>
-          {loading ? (mode === 'signin' ? 'Signing in...' : 'Creating account...') : (mode === 'signin' ? 'Sign In' : 'Create Account')}
+
+        {mode === 'signup' && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="age">Age</Label>
+              <Input
+                id="age"
+                type="number"
+                placeholder="Your age"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                min={1}
+                className="transition-all focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+1 555 123 4567"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="transition-all focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </>
+        )}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-primary hover:scale-105 transition-transform shadow-button"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              {mode === 'signin' ? 'Signing In...' : 'Creating Account...'}
+            </>
+          ) : (
+            <>
+              {mode === 'signin' ? (
+                <>
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Create Account
+                </>
+              )}
+            </>
+          )}
         </Button>
       </form>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-page flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-primary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
+        {/* Header */}
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center space-x-2">
-            <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center shadow-badge">
-              <Coins className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent">FinTrek</h1>
+          <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center shadow-glow">
+            <TrendingUp className="w-8 h-8 text-white" />
           </div>
-          <p className="text-muted-foreground">Master financial literacy through interactive learning</p>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent">
+              Welcome to FinTrek
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Your journey to financial mastery starts here
+            </p>
+          </div>
         </div>
 
-        <Card className="shadow-glow border-primary/20">
-          <CardHeader className="text-center">
-            <CardTitle>Welcome</CardTitle>
-            <CardDescription>Sign in to your account or create a new one to start your learning journey</CardDescription>
+        {/* Auth Form */}
+        <Card className="shadow-card bg-gradient-card backdrop-blur-sm border-primary/10">
+          <CardHeader className="text-center pb-4">
+            <CardTitle>Get Started</CardTitle>
+            <CardDescription>
+              Create an account or sign in to continue your learning journey
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {error && (
-              <Alert className="mb-4 border-destructive bg-destructive/10">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-destructive">{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {success && (
-              <Alert className="mb-4 border-success bg-success/10">
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription className="text-success">{success}</AlertDescription>
-              </Alert>
-            )}
-
             <Tabs defaultValue="signin" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  Sign In
+                </TabsTrigger>
+                <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  Sign Up
+                </TabsTrigger>
               </TabsList>
-              
+
+              {error && (
+                <Alert className="border-destructive/50 text-destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {success && (
+                <Alert className="border-success/50 text-success">
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+              )}
+
               <TabsContent value="signin" className="space-y-4">
-                <AuthForm mode="signin" onSubmit={handleSignIn} />
+                <AuthForm mode="signin" />
               </TabsContent>
-              
+
               <TabsContent value="signup" className="space-y-4">
-                <AuthForm mode="signup" onSubmit={handleSignUp} />
+                <AuthForm mode="signup" />
                 <p className="text-xs text-muted-foreground text-center">
-                  By creating an account, you agree to our terms of service and privacy policy.
+                  By creating an account, you agree to our Terms of Service and Privacy Policy.
                 </p>
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <div className="text-center text-sm text-muted-foreground">
+          <p>Join thousands of learners on their path to financial freedom</p>
+        </div>
       </div>
     </div>
   );

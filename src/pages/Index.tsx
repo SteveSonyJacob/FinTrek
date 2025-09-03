@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ProgressBar from '@/components/gamification/ProgressBar';
@@ -19,9 +21,27 @@ import {
  */
 const Index = () => {
   const navigate = useNavigate();
-
-  // For demo purposes, we'll show the landing page
-  // In a real app, you'd check auth state and redirect accordingly
+  
+  // Auth-aware redirect: if user is logged in, go to /dashboard
+  useEffect(() => {
+    let isMounted = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      if (session?.user) {
+        navigate('/dashboard', { replace: true });
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      if (session?.user) {
+        navigate('/dashboard', { replace: true });
+      }
+    });
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
