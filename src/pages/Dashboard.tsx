@@ -1,9 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import ProgressBar from '@/components/gamification/ProgressBar';
 import Badge from '@/components/gamification/Badge';
 import PointsDisplay from '@/components/gamification/PointsDisplay';
 import { useUser } from '@supabase/auth-helpers-react';
+import { useUserPoints, useUserProgress, useUserQuizResults } from '@/hooks/useUserData';
 import { 
   BookOpen, 
   Target, 
@@ -12,7 +15,8 @@ import {
   Play,
   Award,
   Users,
-  Flame
+  Flame,
+  AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -21,22 +25,15 @@ import { Link } from 'react-router-dom';
  * Features: Progress overview, recent badges, learning streaks, quick navigation
  */
 const Dashboard = () => {
-  // Mock data - replace with real API calls
-  const user = useUser()
+  const user = useUser();
+  const { points, loading: pointsLoading, error: pointsError } = useUserPoints();
+  const { progress, loading: progressLoading, error: progressError } = useUserProgress();
+  const { quizResults, loading: quizLoading, error: quizError } = useUserQuizResults();
 
-  const userStats = {
-    totalPoints: 2847,
-    currentStreak: 7,
-    completedLessons: 24,
-    totalLessons: 45,
-    currentLevel: 'Intermediate Trader',
-    nextLevelProgress: 68,
-    recentBadges: [
-      { type: 'gold' as const, title: 'Quiz Master', icon: 'award' as const },
-      { type: 'silver' as const, title: 'Week Warrior', icon: 'star' as const },
-      { type: 'bronze' as const, title: 'First Steps', icon: 'zap' as const }
-    ]
-  };
+  // Calculate quiz accuracy from recent results
+  const quizAccuracy = quizResults.length > 0 
+    ? Math.round((quizResults.reduce((acc, result) => acc + (result.score / result.total_questions * 100), 0) / quizResults.length))
+    : 0;
 
   const weeklyProgress = [
     { day: 'Mon', completed: true },
@@ -47,6 +44,39 @@ const Dashboard = () => {
     { day: 'Sat', completed: true },
     { day: 'Sun', completed: false }
   ];
+
+  const recentBadges = [
+    { type: 'gold' as const, title: 'Quiz Master', icon: 'award' as const },
+    { type: 'silver' as const, title: 'Week Warrior', icon: 'star' as const },
+    { type: 'bronze' as const, title: 'First Steps', icon: 'zap' as const }
+  ];
+
+  const renderLoadingCard = () => (
+    <Card className="bg-gradient-card shadow-card border-primary/20">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-4 rounded" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-8 w-16 mb-2" />
+        <Skeleton className="h-3 w-12" />
+      </CardContent>
+    </Card>
+  );
+
+  const renderErrorCard = (title: string, error: string) => (
+    <Card className="bg-gradient-card shadow-card border-destructive/20">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <AlertCircle className="h-4 w-4 text-destructive" />
+      </CardHeader>
+      <CardContent>
+        <Alert>
+          <AlertDescription className="text-xs">{error}</AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -62,49 +92,63 @@ const Dashboard = () => {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-card shadow-card border-primary/20 hover:shadow-glow transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Points</CardTitle>
-            <Target className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <PointsDisplay points={userStats.totalPoints} size="lg" />
-            <p className="text-xs text-success mt-2">+150 today</p>
-          </CardContent>
-        </Card>
+        {/* Total Points Card */}
+        {pointsLoading ? renderLoadingCard() : pointsError ? renderErrorCard("Total Points", pointsError) : (
+          <Card className="bg-gradient-card shadow-card border-primary/20 hover:shadow-glow transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Points</CardTitle>
+              <Target className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <PointsDisplay points={points?.total_points || 0} size="lg" />
+              <p className="text-xs text-success mt-2">+150 today</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="bg-gradient-card shadow-card border-streak/20 hover:shadow-glow transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-            <Flame className="h-4 w-4 text-streak" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-streak">{userStats.currentStreak} days</div>
-            <p className="text-xs text-muted-foreground mt-2">Personal best: 12 days</p>
-          </CardContent>
-        </Card>
+        {/* Current Streak Card */}
+        {pointsLoading ? renderLoadingCard() : pointsError ? renderErrorCard("Current Streak", pointsError) : (
+          <Card className="bg-gradient-card shadow-card border-streak/20 hover:shadow-glow transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+              <Flame className="h-4 w-4 text-streak" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-streak">{points?.current_streak || 0} days</div>
+              <p className="text-xs text-muted-foreground mt-2">Personal best: 12 days</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="bg-gradient-card shadow-card border-accent/20 hover:shadow-glow transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lessons Completed</CardTitle>
-            <BookOpen className="h-4 w-4 text-accent" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.completedLessons}/{userStats.totalLessons}</div>
-            <p className="text-xs text-muted-foreground mt-2">53% complete</p>
-          </CardContent>
-        </Card>
+        {/* Lessons Completed Card */}
+        {progressLoading ? renderLoadingCard() : progressError ? renderErrorCard("Lessons Completed", progressError) : (
+          <Card className="bg-gradient-card shadow-card border-accent/20 hover:shadow-glow transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Lessons Completed</CardTitle>
+              <BookOpen className="h-4 w-4 text-accent" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{progress?.completed_lessons || 0}/{progress?.total_lessons || 45}</div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {progress ? Math.round((progress.completed_lessons / progress.total_lessons) * 100) : 0}% complete
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="bg-gradient-card shadow-card border-secondary/20 hover:shadow-glow transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Level</CardTitle>
-            <Award className="h-4 w-4 text-secondary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">{userStats.currentLevel}</div>
-            <p className="text-xs text-muted-foreground mt-2">Next: Advanced Trader</p>
-          </CardContent>
-        </Card>
+        {/* Current Level Card */}
+        {progressLoading ? renderLoadingCard() : progressError ? renderErrorCard("Current Level", progressError) : (
+          <Card className="bg-gradient-card shadow-card border-secondary/20 hover:shadow-glow transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Current Level</CardTitle>
+              <Award className="h-4 w-4 text-secondary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-lg font-bold">{progress?.current_level || 'Beginner Trader'}</div>
+              <p className="text-xs text-muted-foreground mt-2">Next: Advanced Trader</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -118,20 +162,34 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <ProgressBar
-                progress={(userStats.completedLessons / userStats.totalLessons) * 100}
-                label="Overall Course Progress"
-                variant="primary"
-                showPercentage
-                animated
-              />
-              <ProgressBar
-                progress={userStats.nextLevelProgress}
-                label="Progress to Next Level"
-                variant="xp"
-                showPercentage
-                animated
-              />
+              {progressLoading ? (
+                <>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </>
+              ) : progressError ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{progressError}</AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  <ProgressBar
+                    progress={progress ? (progress.completed_lessons / progress.total_lessons) * 100 : 0}
+                    label="Overall Course Progress"
+                    variant="primary"
+                    showPercentage
+                    animated
+                  />
+                  <ProgressBar
+                    progress={progress?.next_level_progress || 0}
+                    label="Progress to Next Level"
+                    variant="xp"
+                    showPercentage
+                    animated
+                  />
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -200,7 +258,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="flex justify-center space-x-4">
-                {userStats.recentBadges.map((badge, index) => (
+                {recentBadges.map((badge, index) => (
                   <Badge
                     key={index}
                     type={badge.type}
