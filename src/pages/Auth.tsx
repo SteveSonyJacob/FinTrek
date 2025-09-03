@@ -51,7 +51,13 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSignUp = async (email: string, password: string) => {
+  const handleSignUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    age: number | null,
+    phone: string | null
+  ) => {
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -62,7 +68,12 @@ const Auth = () => {
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl
+        emailRedirectTo: redirectUrl,
+        data: {
+          full_name: fullName,
+          age,
+          phone,
+        }
       }
     });
 
@@ -93,18 +104,37 @@ const Auth = () => {
   const AuthForm = ({ mode }: { mode: 'signin' | 'signup' }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [age, setAge] = useState<string>('');
+    const [phone, setPhone] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       if (mode === 'signin') {
         handleSignIn(email, password);
       } else {
-        handleSignUp(email, password);
+        const parsedAge = age ? Number(age) : null;
+        handleSignUp(email, password, fullName, Number.isFinite(parsedAge as number) ? parsedAge : null, phone || null);
       }
     };
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
+        {mode === 'signup' && (
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input
+              id="fullName"
+              type="text"
+              placeholder="Your full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              className="transition-all focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -130,6 +160,34 @@ const Auth = () => {
             className="transition-all focus:ring-2 focus:ring-primary/20"
           />
         </div>
+
+        {mode === 'signup' && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="age">Age</Label>
+              <Input
+                id="age"
+                type="number"
+                placeholder="Your age"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                min={1}
+                className="transition-all focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+1 555 123 4567"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="transition-all focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </>
+        )}
         <Button
           type="submit"
           disabled={loading}

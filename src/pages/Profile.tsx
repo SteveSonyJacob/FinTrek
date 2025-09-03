@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Badge from '@/components/gamification/Badge';
@@ -18,18 +19,44 @@ import {
   Settings,
   Share2
 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * User profile page with achievements, stats, and settings
  * Features: Profile editing, achievement showcase, learning statistics, progress tracking
  */
 const Profile = () => {
-  // Mock user data - replace with real API calls
-  const userData = {
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@email.com',
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [age, setAge] = useState<string>('');
+  const [phone, setPhone] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    async function load() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!isMounted) return;
+      const user = session?.user;
+      if (user) {
+        setEmail(user.email ?? '');
+        const meta = user.user_metadata as any;
+        setFullName(meta?.full_name ?? '');
+        setAge(meta?.age != null ? String(meta.age) : '');
+        setPhone(meta?.phone ?? '');
+      }
+      setLoading(false);
+    }
+    load();
+    return () => { isMounted = false; };
+  }, []);
+
+  const userData = useMemo(() => ({
+    name: fullName || 'Your Name',
+    email: email || 'you@example.com',
     avatar: '',
-    joinDate: 'March 2024',
+    joinDate: '—',
     level: 'Intermediate Trader',
     nextLevel: 'Advanced Trader',
     levelProgress: 68,
@@ -41,8 +68,8 @@ const Profile = () => {
     quizzesTaken: 32,
     correctAnswers: 186,
     totalAnswers: 240,
-    timeSpent: 12.5 // hours
-  };
+    timeSpent: 12.5
+  }), [fullName, email]);
 
   const achievements = [
     { type: 'gold' as const, title: 'Quiz Master', description: 'Perfect score on 5 quizzes', icon: 'award' as const, earned: true },
@@ -339,16 +366,44 @@ const Profile = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Full Name</label>
-                  <Input value={userData.name} />
+                  <Label htmlFor="profile-fullname" className="text-sm font-medium">Full Name</Label>
+                  <Input id="profile-fullname" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
-                  <Input value={userData.email} />
+                  <Label htmlFor="profile-email" className="text-sm font-medium">Email</Label>
+                  <Input id="profile-email" value={email} disabled />
                 </div>
-                <Button className="w-full bg-gradient-primary">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-age" className="text-sm font-medium">Age</Label>
+                    <Input id="profile-age" type="number" value={age} onChange={(e) => setAge(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-phone" className="text-sm font-medium">Phone Number</Label>
+                    <Input id="profile-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  </div>
+                </div>
+                <Button
+                  className="w-full bg-gradient-primary"
+                  onClick={async () => {
+                    setLoading(true);
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const current = session?.user;
+                    if (current) {
+                      await supabase.auth.updateUser({
+                        data: {
+                          full_name: fullName,
+                          age: age ? Number(age) : null,
+                          phone: phone || null,
+                        }
+                      });
+                    }
+                    setLoading(false);
+                  }}
+                  disabled={loading}
+                >
                   <User className="w-4 h-4 mr-2" />
-                  Update Profile
+                  {loading ? 'Saving…' : 'Update Profile'}
                 </Button>
               </CardContent>
             </Card>

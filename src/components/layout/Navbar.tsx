@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, 
   BookOpen, 
@@ -11,6 +11,8 @@ import {
 import { cn } from '@/lib/utils';
 import PointsDisplay from '../gamification/PointsDisplay';
 import { ThemeToggle } from '../ui/theme-toggle';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Main navigation component with gamified elements and theme toggle
@@ -18,9 +20,10 @@ import { ThemeToggle } from '../ui/theme-toggle';
  */
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: Home },
+    { path: '/dashboard', label: 'Dashboard', icon: Home },
     { path: '/learning', label: 'Learn', icon: BookOpen },
     { path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
     { path: '/community', label: 'Community', icon: Users },
@@ -33,7 +36,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
           <Link 
-            to="/" 
+            to="/dashboard" 
             className="flex items-center space-x-2 text-primary font-bold text-xl hover:text-primary-light transition-colors"
           >
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center shadow-badge">
@@ -74,6 +77,16 @@ const Navbar = () => {
               <span className="text-sm">7</span>
             </div>
             <ThemeToggle />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate('/auth', { replace: true });
+              }}
+            >
+              Logout
+            </Button>
           </div>
         </div>
       </div>
