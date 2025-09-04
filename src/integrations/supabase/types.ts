@@ -14,6 +14,187 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          lessons_required: number | null
+          points_required: number | null
+          streak_required: number | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          icon?: string
+          id?: string
+          lessons_required?: number | null
+          points_required?: number | null
+          streak_required?: number | null
+          title: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          lessons_required?: number | null
+          points_required?: number | null
+          streak_required?: number | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      discussion_likes: {
+        Row: {
+          created_at: string
+          discussion_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discussion_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discussion_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_likes_discussion_id_fkey"
+            columns: ["discussion_id"]
+            isOneToOne: false
+            referencedRelation: "discussions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussion_replies: {
+        Row: {
+          content: string
+          created_at: string
+          discussion_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          discussion_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          discussion_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_replies_discussion_id_fkey"
+            columns: ["discussion_id"]
+            isOneToOne: false
+            referencedRelation: "discussions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussions: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learning_modules: {
+        Row: {
+          color: string
+          created_at: string
+          description: string
+          difficulty: string
+          estimated_time: string
+          icon: string
+          id: string
+          is_unlocked: boolean
+          lessons: number
+          order_index: number
+          title: string
+          topics: string[]
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description: string
+          difficulty?: string
+          estimated_time?: string
+          icon?: string
+          id?: string
+          is_unlocked?: boolean
+          lessons?: number
+          order_index?: number
+          title: string
+          topics?: string[]
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string
+          difficulty?: string
+          estimated_time?: string
+          icon?: string
+          id?: string
+          is_unlocked?: boolean
+          lessons?: number
+          order_index?: number
+          title?: string
+          topics?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       points: {
         Row: {
           created_at: string
@@ -95,6 +276,47 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_questions: {
+        Row: {
+          correct_answer: number
+          created_at: string
+          explanation: string
+          id: string
+          options: string[]
+          order_index: number
+          question: string
+          quiz_id: string
+        }
+        Insert: {
+          correct_answer: number
+          created_at?: string
+          explanation: string
+          id?: string
+          options: string[]
+          order_index?: number
+          question: string
+          quiz_id: string
+        }
+        Update: {
+          correct_answer?: number
+          created_at?: string
+          explanation?: string
+          id?: string
+          options?: string[]
+          order_index?: number
+          question?: string
+          quiz_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_results: {
         Row: {
           completed_at: string
@@ -121,6 +343,141 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      quizzes: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          is_daily: boolean
+          module_id: string | null
+          points_per_question: number
+          time_limit: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          is_daily?: boolean
+          module_id?: string | null
+          points_per_question?: number
+          time_limit?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_daily?: boolean
+          module_id?: string | null
+          points_per_question?: number
+          time_limit?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "learning_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_activity: {
+        Row: {
+          activity: string
+          activity_type: string
+          created_at: string
+          id: string
+          points: number
+          user_id: string
+        }
+        Insert: {
+          activity: string
+          activity_type?: string
+          created_at?: string
+          id?: string
+          points?: number
+          user_id: string
+        }
+        Update: {
+          activity?: string
+          activity_type?: string
+          created_at?: string
+          id?: string
+          points?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_module_progress: {
+        Row: {
+          completed_lessons: number
+          created_at: string
+          id: string
+          module_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_lessons?: number
+          created_at?: string
+          id?: string
+          module_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_lessons?: number
+          created_at?: string
+          id?: string
+          module_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_module_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "learning_modules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
