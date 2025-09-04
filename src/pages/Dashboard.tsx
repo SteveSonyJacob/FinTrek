@@ -7,6 +7,8 @@ import Badge from '@/components/gamification/Badge';
 import PointsDisplay from '@/components/gamification/PointsDisplay';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserPoints, useUserProgress, useUserQuizResults } from '@/hooks/useUserData';
+import { useUserAchievements } from '@/hooks/useProfile';
+import { useMemo } from 'react';
 import { 
   BookOpen, 
   Target, 
@@ -29,27 +31,47 @@ const Dashboard = () => {
   const { points, loading: pointsLoading, error: pointsError } = useUserPoints();
   const { progress, loading: progressLoading, error: progressError } = useUserProgress();
   const { quizResults, loading: quizLoading, error: quizError } = useUserQuizResults();
+  const { achievements, loading: achievementsLoading } = useUserAchievements();
 
   // Calculate quiz accuracy from recent results
   const quizAccuracy = quizResults.length > 0 
     ? Math.round((quizResults.reduce((acc, result) => acc + (result.score / result.total_questions * 100), 0) / quizResults.length))
     : 0;
 
-  const weeklyProgress = [
-    { day: 'Mon', completed: true },
-    { day: 'Tue', completed: true },
-    { day: 'Wed', completed: true },
-    { day: 'Thu', completed: true },
-    { day: 'Fri', completed: true },
-    { day: 'Sat', completed: true },
-    { day: 'Sun', completed: false }
-  ];
+  // Generate weekly progress - only show completed for days with actual activity
+  const weeklyProgress = useMemo(() => {
+    const today = new Date();
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Start from Sunday
+    
+    return days.map((day, index) => {
+      const dayDate = new Date(startOfWeek);
+      dayDate.setDate(startOfWeek.getDate() + index);
+      
+      // For new users, show no completed days initially
+      // In a real app, you'd check actual user activity from the database
+      const isCompleted = false; // Start with no completed days for new users
+      
+      return {
+        day,
+        completed: isCompleted
+      };
+    });
+  }, []);
 
-  const recentBadges = [
-    { type: 'gold' as const, title: 'Quiz Master', icon: 'award' as const },
-    { type: 'silver' as const, title: 'Week Warrior', icon: 'star' as const },
-    { type: 'bronze' as const, title: 'First Steps', icon: 'zap' as const }
-  ];
+  // Get recent earned achievements (limit to 3 for display)
+  const recentBadges = useMemo(() => {
+    if (achievementsLoading || !achievements) return [];
+    return achievements
+      .filter(achievement => achievement.earned)
+      .slice(0, 3)
+      .map(achievement => ({
+        type: achievement.type as const,
+        title: achievement.title,
+        icon: achievement.icon as const
+      }));
+  }, [achievements, achievementsLoading]);
 
   const renderLoadingCard = () => (
     <Card className="bg-gradient-card shadow-card border-primary/20">
@@ -257,25 +279,42 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex justify-center space-x-4">
-                {recentBadges.map((badge, index) => (
-                  <Badge
-                    key={index}
-                    type={badge.type}
-                    title={badge.title}
-                    icon={badge.icon}
-                    size="md"
-                    earned
-                  />
-                ))}
-              </div>
-              <div className="text-center mt-4">
-                <Link to="/profile">
-                  <Button variant="ghost" size="sm">
-                    View All Badges →
-                  </Button>
-                </Link>
-              </div>
+              {achievementsLoading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                </div>
+              ) : recentBadges.length > 0 ? (
+                <>
+                  <div className="flex justify-center space-x-4">
+                    {recentBadges.map((badge, index) => (
+                      <Badge
+                        key={index}
+                        type={badge.type}
+                        title={badge.title}
+                        icon={badge.icon}
+                        size="md"
+                        earned
+                      />
+                    ))}
+                  </div>
+                  <div className="text-center mt-4">
+                    <Link to="/profile">
+                      <Button variant="ghost" size="sm">
+                        View All Badges →
+                      </Button>
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground text-sm">No achievements yet. Start learning to earn your first badge!</p>
+                  <Link to="/learning">
+                    <Button variant="outline" size="sm" className="mt-2">
+                      Start Learning
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

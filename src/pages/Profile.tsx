@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserProfile, useUserAchievements, useUserActivity } from '@/hooks/useProfile';
 
 /**
  * User profile page with achievements, stats, and settings
@@ -32,6 +33,11 @@ const Profile = () => {
   const [fullName, setFullName] = useState('');
   const [age, setAge] = useState<string>('');
   const [phone, setPhone] = useState('');
+
+  // Dynamic data from Supabase
+  const { profile: userData, loading: profileLoading } = useUserProfile();
+  const { achievements, loading: achievementsLoading } = useUserAchievements();
+  const { activities: recentActivity, loading: activityLoading } = useUserActivity();
 
   useEffect(() => {
     let isMounted = true;
@@ -52,60 +58,35 @@ const Profile = () => {
     return () => { isMounted = false; };
   }, []);
 
-  const userData = useMemo(() => ({
-    name: fullName || 'Your Name',
-    email: email || 'you@example.com',
-    avatar: '',
-    joinDate: '—',
-    level: 'Intermediate Trader',
-    nextLevel: 'Advanced Trader',
-    levelProgress: 68,
-    totalPoints: 2847,
-    currentStreak: 7,
-    longestStreak: 12,
-    completedLessons: 24,
-    totalLessons: 45,
-    quizzesTaken: 32,
-    correctAnswers: 186,
-    totalAnswers: 240,
-    timeSpent: 12.5
-  }), [fullName, email]);
-
-  const achievements = [
-    { type: 'gold' as const, title: 'Quiz Master', description: 'Perfect score on 5 quizzes', icon: 'award' as const, earned: true },
-    { type: 'silver' as const, title: 'Week Warrior', description: '7-day learning streak', icon: 'star' as const, earned: true },
-    { type: 'bronze' as const, title: 'First Steps', description: 'Complete first lesson', icon: 'zap' as const, earned: true },
-    { type: 'gold' as const, title: 'Knowledge Seeker', description: 'Complete 20 lessons', icon: 'crown' as const, earned: true },
-    { type: 'silver' as const, title: 'Community Helper', description: 'Help 10 community members', icon: 'award' as const, earned: true },
-    { type: 'diamond' as const, title: 'Finance Master', description: 'Complete all modules', icon: 'crown' as const, earned: false },
-    { type: 'gold' as const, title: 'Streak Legend', description: '30-day learning streak', icon: 'star' as const, earned: false },
-    { type: 'silver' as const, title: 'Quiz Champion', description: 'Top 10% in weekly quiz', icon: 'award' as const, earned: false }
-  ];
-
-  const recentActivity = [
+  // Mock data for learning goals
+  const mockRecentActivity = [
     { 
-      date: new Date(), 
+      id: '1',
+      created_at: new Date().toISOString(), 
       activity: 'Completed lesson "Investment Basics"', 
       points: 50, 
-      type: 'lesson' 
+      activity_type: 'lesson' 
     },
     { 
-      date: new Date(Date.now() - 1 * 60 * 60 * 1000), 
+      id: '2',
+      created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), 
       activity: 'Perfect score on Daily Quiz', 
       points: 100, 
-      type: 'quiz' 
+      activity_type: 'quiz' 
     },
     { 
-      date: new Date(Date.now() - 2 * 60 * 60 * 1000), 
+      id: '3',
+      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), 
       activity: 'Started "Trading Strategies" module', 
       points: 25, 
-      type: 'milestone' 
+      activity_type: 'milestone' 
     },
     { 
-      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), 
+      id: '4',
+      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), 
       activity: 'Earned "Week Warrior" badge', 
       points: 200, 
-      type: 'achievement' 
+      activity_type: 'achievement' 
     }
   ];
 
@@ -124,7 +105,8 @@ const Profile = () => {
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
     
@@ -132,6 +114,27 @@ const Profile = () => {
     if (diffInHours < 24) return `${diffInHours}h ago`;
     return `${Math.floor(diffInHours / 24)}d ago`;
   };
+
+  if (profileLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Please log in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
