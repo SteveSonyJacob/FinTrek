@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import PointsDisplay from '../gamification/PointsDisplay';
 import { ThemeToggle } from '../ui/theme-toggle';
+import { useUserPoints } from '@/hooks/useUserData';
 
 /**
  * Main navigation component with gamified elements and theme toggle
@@ -18,6 +19,7 @@ import { ThemeToggle } from '../ui/theme-toggle';
  */
 const Navbar = () => {
   const location = useLocation();
+  const { points, loading: pointsLoading } = useUserPoints();
   
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Home },
@@ -68,10 +70,14 @@ const Navbar = () => {
 
           {/* Right Side: Points, Streak, Theme Toggle */}
           <div className="flex items-center space-x-4">
-            <PointsDisplay points={2847} />
+            {pointsLoading ? (
+              <div className="w-16 h-6 bg-muted animate-pulse rounded"></div>
+            ) : (
+              <PointsDisplay points={points?.total_points || 0} />
+            )}
             <div className="flex items-center space-x-1 text-streak font-bold">
               <Flame className="w-5 h-5" />
-              <span className="text-sm">7</span>
+              <span className="text-sm">{points?.current_streak || 0}</span>
             </div>
             <ThemeToggle />
           </div>

@@ -13,14 +13,19 @@ import {
   Briefcase
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLearningModules, useOverallProgress } from '@/hooks/useLearning';
 
 /**
  * Learning modules page displaying available courses and lessons
  * Features: Course categories, progress tracking, locked/unlocked content
  */
 const Learning = () => {
-  // Mock data - replace with real API calls
-  const learningModules = [
+  // Dynamic data from Supabase
+  const { modules: learningModules, loading: modulesLoading, error: modulesError } = useLearningModules();
+  const { progress: overallProgress, loading: progressLoading } = useOverallProgress();
+
+  // Mock data for reference (remove this later)
+  const mockModules = [
     {
       id: 1,
       title: 'Financial Fundamentals',
@@ -105,44 +110,69 @@ const Learning = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">53%</div>
-              <div className="text-sm text-muted-foreground">Overall Completion</div>
+          {progressLoading ? (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-secondary">24</div>
-              <div className="text-sm text-muted-foreground">Lessons Completed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-accent">12</div>
-              <div className="text-sm text-muted-foreground">Hours Studied</div>
-            </div>
-          </div>
-          <ProgressBar
-            progress={53}
-            label="Complete all modules to unlock advanced features"
-            variant="primary"
-            showPercentage
-            animated
-          />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{overallProgress.overallCompletion}%</div>
+                  <div className="text-sm text-muted-foreground">Overall Completion</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-secondary">{overallProgress.lessonsCompleted}</div>
+                  <div className="text-sm text-muted-foreground">Lessons Completed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-accent">{overallProgress.hoursStudied}</div>
+                  <div className="text-sm text-muted-foreground">Hours Studied</div>
+                </div>
+              </div>
+              <ProgressBar
+                progress={overallProgress.overallCompletion}
+                label="Complete all modules to unlock advanced features"
+                variant="primary"
+                showPercentage
+                animated
+              />
+            </>
+          )}
         </CardContent>
       </Card>
 
       {/* Learning Modules Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {learningModules.map((module) => {
-          const Icon = module.icon;
-          const progress = (module.completedLessons / module.lessons) * 100;
-          const isCompleted = module.completedLessons === module.lessons;
+      {modulesLoading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Loading modules...</p>
+        </div>
+      ) : modulesError ? (
+        <div className="text-center py-8">
+          <p className="text-destructive">Error loading modules: {modulesError}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {learningModules.map((module) => {
+            const iconMap: Record<string, any> = {
+              DollarSign,
+              TrendingUp,
+              PieChart,
+              Briefcase,
+              BookOpen
+            };
+            const Icon = iconMap[module.icon] || BookOpen;
+            const progress = module.lessons > 0 ? (module.completed_lessons / module.lessons) * 100 : 0;
+            const isCompleted = module.completed_lessons === module.lessons;
 
-          return (
-            <Card 
-              key={module.id} 
-              className={`shadow-card hover:shadow-glow transition-all duration-300 ${
-                !module.unlocked ? 'opacity-60' : 'hover:scale-[1.02]'
-              }`}
-            >
+            return (
+              <Card 
+                key={module.id} 
+                className={`shadow-card hover:shadow-glow transition-all duration-300 ${
+                  !module.is_unlocked ? 'opacity-60' : 'hover:scale-[1.02]'
+                }`}
+              >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className={`w-12 h-12 rounded-lg ${module.color} flex items-center justify-center shadow-badge`}>
@@ -162,17 +192,17 @@ const Learning = () => {
                 </div>
                 <CardTitle className="flex items-center justify-between">
                   <span>{module.title}</span>
-                  {!module.unlocked && <Lock className="w-4 h-4 text-muted-foreground" />}
+                  {!module.is_unlocked && <Lock className="w-4 h-4 text-muted-foreground" />}
                 </CardTitle>
                 <CardDescription>{module.description}</CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-4">
                 {/* Progress */}
-                {module.unlocked && (
+                {module.is_unlocked && (
                   <ProgressBar
                     progress={progress}
-                    label={`${module.completedLessons}/${module.lessons} lessons completed`}
+                    label={`${module.completed_lessons}/${module.lessons} lessons completed`}
                     variant="primary"
                     showPercentage
                   />
@@ -181,7 +211,7 @@ const Learning = () => {
                 {/* Module Info */}
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>{module.lessons} lessons</span>
-                  <span>{module.estimatedTime}</span>
+                  <span>{module.estimated_time}</span>
                 </div>
 
                 {/* Topics */}
@@ -198,11 +228,11 @@ const Learning = () => {
 
                 {/* Action Button */}
                 <div className="pt-2">
-                  {module.unlocked ? (
+                  {module.is_unlocked ? (
                     <Link to={`/lesson/${module.id}`}>
                       <Button className="w-full bg-gradient-primary hover:scale-105 transition-transform">
                         <PlayCircle className="w-4 h-4 mr-2" />
-                        {module.completedLessons > 0 ? 'Continue Learning' : 'Start Module'}
+                        {module.completed_lessons > 0 ? 'Continue Learning' : 'Start Module'}
                       </Button>
                     </Link>
                   ) : (
@@ -214,9 +244,10 @@ const Learning = () => {
                 </div>
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

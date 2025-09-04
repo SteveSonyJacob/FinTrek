@@ -98,10 +98,25 @@ export const useSubmitQuizResult = () => {
       // Award points for correct answers
       const pointsEarned = score * 50; // 50 points per correct answer
       if (pointsEarned > 0) {
-        const { error: pointsError } = await supabase.rpc('add_user_points', {
-          user_id: user.id,
-          points_to_add: pointsEarned
-        });
+        // Update user points directly
+        const { data: currentPoints } = await supabase
+          .from('points')
+          .select('total_points')
+          .eq('user_id', user.id)
+          .single();
+
+        const newTotal = (currentPoints?.total_points || 0) + pointsEarned;
+        
+        const { error: pointsError } = await supabase
+          .from('points')
+          .upsert([
+            {
+              user_id: user.id,
+              total_points: newTotal
+            }
+          ], { 
+            onConflict: 'user_id'
+          });
 
         if (pointsError) {
           console.warn('Failed to award points:', pointsError);

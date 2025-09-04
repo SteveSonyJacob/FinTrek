@@ -18,6 +18,8 @@ import {
   Calendar
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useDiscussions, useCreateDiscussion, useCommunityStats } from '@/hooks/useCommunity';
+import { toast } from 'sonner';
 
 /**
  * Community page with forums, discussions, and social features
@@ -29,8 +31,13 @@ const Community = () => {
   const [newPostContent, setNewPostContent] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock data - replace with real API calls
-  const discussions = [
+  // Dynamic data from Supabase
+  const { discussions, loading: discussionsLoading, error: discussionsError } = useDiscussions();
+  const { createDiscussion, loading: creatingDiscussion } = useCreateDiscussion();
+  const { stats, loading: statsLoading } = useCommunityStats();
+
+  // Mock data for friends (would be replaced with real data later)
+  const mockDiscussions = [
     {
       id: 1,
       title: 'Best beginner investment strategies?',
@@ -119,43 +126,49 @@ const Community = () => {
     { name: 'General', count: 67, color: 'text-muted-foreground' }
   ];
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!newPostTitle.trim() || !newPostContent.trim()) return;
     
-    // Here you would typically make an API call to create the post
-    console.log('Creating post:', { title: newPostTitle, content: newPostContent });
-    setNewPostTitle('');
-    setNewPostContent('');
+    try {
+      await createDiscussion(newPostTitle, newPostContent, 'General');
+      toast.success('Discussion created successfully!');
+      setNewPostTitle('');
+      setNewPostContent('');
+      setActiveTab('discussions');
+    } catch (error) {
+      toast.error('Failed to create discussion. Please try again.');
+      console.error('Error creating discussion:', error);
+    }
   };
 
-  const DiscussionCard = ({ discussion }: { discussion: any }) => (
+  const DiscussionCard = ({ discussion }: { discussion: any }) => {
+    const profile = discussion.profiles?.[0];
+    const authorName = profile?.name || 'Anonymous User';
+    
+    return (
     <Card className="shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer">
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
             <Avatar className="w-10 h-10">
-              <AvatarImage src={discussion.author.avatar} />
+              <AvatarImage src={profile?.avatar_url} />
               <AvatarFallback className="bg-gradient-primary text-primary-foreground font-bold">
-                {discussion.author.name.split(' ').map((n: string) => n[0]).join('')}
+                {authorName.split(' ').map((n: string) => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-medium">{discussion.author.name}</span>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  discussion.author.level === 'Gold' ? 'bg-badge-gold/20 text-badge-gold' :
-                  discussion.author.level === 'Silver' ? 'bg-badge-silver/20 text-badge-silver' :
-                  'bg-badge-bronze/20 text-badge-bronze'
-                }`}>
-                  {discussion.author.badge}
+                <span className="font-medium">{authorName}</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-badge-bronze/20 text-badge-bronze">
+                  Learner
                 </span>
               </div>
               <div className="text-xs text-muted-foreground">
-                {formatDistanceToNow(discussion.createdAt, { addSuffix: true })}
+                {formatDistanceToNow(new Date(discussion.created_at), { addSuffix: true })}
               </div>
             </div>
           </div>
-          {discussion.isPinned && (
+          {discussion.is_pinned && (
             <Pin className="w-4 h-4 text-secondary" />
           )}
         </div>
@@ -175,21 +188,22 @@ const Community = () => {
               </span>
               <div className="flex items-center space-x-1">
                 <MessageCircle className="w-4 h-4" />
-                <span>{discussion.replies}</span>
+                <span>{discussion.reply_count}</span>
               </div>
               <div className="flex items-center space-x-1">
                 <Heart className="w-4 h-4" />
-                <span>{discussion.likes}</span>
+                <span>{discussion.like_count}</span>
               </div>
             </div>
             <span className="text-xs text-muted-foreground">
-              Last activity {formatDistanceToNow(discussion.lastActivity, { addSuffix: true })}
+              Last activity {formatDistanceToNow(new Date(discussion.updated_at), { addSuffix: true })}
             </span>
           </div>
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -214,15 +228,15 @@ const Community = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Active Members</span>
-                <span className="font-bold">1,247</span>
+                <span className="font-bold">{stats.activeMembers.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Discussions</span>
-                <span className="font-bold">186</span>
+                <span className="font-bold">{stats.totalDiscussions}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">This Week</span>
-                <span className="font-bold text-success">+23</span>
+                <span className="font-bold text-success">+{stats.weeklyDiscussions}</span>
               </div>
             </CardContent>
           </Card>
@@ -313,9 +327,24 @@ const Community = () => {
               </div>
 
               <div className="space-y-4">
-                {discussions.map((discussion) => (
-                  <DiscussionCard key={discussion.id} discussion={discussion} />
-                ))}
+                {discussionsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-muted-foreground mt-2">Loading discussions...</p>
+                  </div>
+                ) : discussionsError ? (
+                  <div className="text-center py-8">
+                    <p className="text-destructive">Error loading discussions: {discussionsError}</p>
+                  </div>
+                ) : discussions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No discussions yet. Be the first to start one!</p>
+                  </div>
+                ) : (
+                  discussions.map((discussion) => (
+                    <DiscussionCard key={discussion.id} discussion={discussion} />
+                  ))
+                )}
               </div>
 
               <div className="text-center pt-4">
@@ -357,7 +386,7 @@ const Community = () => {
                     </div>
                     <Button 
                       onClick={handleCreatePost}
-                      disabled={!newPostTitle.trim() || !newPostContent.trim()}
+                      disabled={!newPostTitle.trim() || !newPostContent.trim() || creatingDiscussion}
                       className="bg-gradient-primary"
                     >
                       <Plus className="w-4 h-4 mr-2" />

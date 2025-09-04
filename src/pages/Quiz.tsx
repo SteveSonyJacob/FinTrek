@@ -13,6 +13,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuiz, useSubmitQuizResult } from '@/hooks/useQuiz';
 
 /**
  * Interactive quiz page with real-time feedback
@@ -29,8 +30,12 @@ const Quiz = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
 
-  // Mock quiz data - replace with real API calls
-  const quizData = {
+  // Dynamic data from Supabase
+  const { quiz: quizData, loading: quizLoading, error: quizError } = useQuiz(id);
+  const { submitQuizResult, submitting } = useSubmitQuizResult();
+
+  // Mock quiz data for reference (remove this later)
+  const mockQuizData = {
     id: id || 'daily',
     title: id === 'daily' ? 'Daily Financial Quiz' : 'Financial Fundamentals Quiz',
     description: 'Test your knowledge and earn points!',
@@ -100,6 +105,30 @@ const Quiz = () => {
     timeLimit: 300
   };
 
+  if (quizLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Loading quiz...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (quizError || !quizData) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="text-center py-8">
+          <p className="text-destructive">Error loading quiz: {quizError || 'Quiz not found'}</p>
+          <Button onClick={() => navigate('/learning')} className="mt-4">
+            Back to Learning
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const currentQ = quizData.questions[currentQuestion];
   const progress = ((currentQuestion + 1) / quizData.questions.length) * 100;
   const isLastQuestion = currentQuestion === quizData.questions.length - 1;
@@ -116,10 +145,10 @@ const Quiz = () => {
     const newAnswers = [...answers, selectedAnswer];
     setAnswers(newAnswers);
 
-    const isCorrect = selectedAnswer === currentQ.correctAnswer;
+    const isCorrect = selectedAnswer === currentQ.correct_answer;
     
     if (isCorrect) {
-      toast.success(`Correct! +${quizData.pointsPerQuestion} points`, {
+      toast.success(`Correct! +${quizData.points_per_question} points`, {
         icon: '🎉',
       });
     } else {
@@ -129,9 +158,18 @@ const Quiz = () => {
     }
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
     if (isLastQuestion) {
-      setQuizCompleted(true);
+      // Submit quiz results to database
+      try {
+        const score = calculateScore().correct;
+        await submitQuizResult(quizData.id, score, quizData.questions.length);
+        setQuizCompleted(true);
+      } catch (error) {
+        console.error('Failed to submit quiz result:', error);
+        toast.error('Failed to save quiz results');
+        setQuizCompleted(true); // Still proceed to show results
+      }
     } else {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedAnswer(null);
@@ -142,7 +180,7 @@ const Quiz = () => {
   const calculateScore = () => {
     let correct = 0;
     answers.forEach((answer, index) => {
-      if (answer === quizData.questions[index].correctAnswer) {
+      if (answer === quizData.questions[index].correct_answer) {
         correct++;
       }
     });
@@ -150,7 +188,7 @@ const Quiz = () => {
       correct,
       total: answers.length,
       percentage: Math.round((correct / answers.length) * 100),
-      points: correct * quizData.pointsPerQuestion
+      points: correct * quizData.points_per_question
     };
   };
 
@@ -160,7 +198,7 @@ const Quiz = () => {
     setAnswers([]);
     setShowResult(false);
     setQuizCompleted(false);
-    setTimeLeft(quizData.timeLimit);
+    setTimeLeft(quizData.time_limit);
   };
 
   const formatTime = (seconds: number) => {
@@ -288,9 +326,9 @@ const Quiz = () => {
               let buttonClass = "w-full text-left p-4 border-2 rounded-lg transition-all duration-200 ";
               
               if (showResult) {
-                if (index === currentQ.correctAnswer) {
+                if (index === currentQ.correct_answer) {
                   buttonClass += "border-success bg-success/10 text-success";
-                } else if (index === selectedAnswer && selectedAnswer !== currentQ.correctAnswer) {
+                } else if (index === selectedAnswer && selectedAnswer !== currentQ.correct_answer) {
                   buttonClass += "border-destructive bg-destructive/10 text-destructive";
                 } else {
                   buttonClass += "border-muted bg-muted/30 text-muted-foreground";
@@ -314,10 +352,10 @@ const Quiz = () => {
                     <span className="font-medium">{option}</span>
                     {showResult && (
                       <div>
-                        {index === currentQ.correctAnswer && (
+                        {index === currentQ.correct_answer && (
                           <CheckCircle className="w-5 h-5 text-success" />
                         )}
-                        {index === selectedAnswer && selectedAnswer !== currentQ.correctAnswer && (
+                        {index === selectedAnswer && selectedAnswer !== currentQ.correct_answer && (
                           <XCircle className="w-5 h-5 text-destructive" />
                         )}
                       </div>
@@ -355,9 +393,10 @@ const Quiz = () => {
             ) : (
               <Button
                 onClick={handleNextQuestion}
+                disabled={submitting}
                 className="w-full bg-gradient-success"
               >
-                {isLastQuestion ? 'Complete Quiz' : 'Next Question'}
+                {submitting ? 'Saving...' : (isLastQuestion ? 'Complete Quiz' : 'Next Question')}
               </Button>
             )}
           </div>
