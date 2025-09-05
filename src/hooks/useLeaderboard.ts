@@ -31,21 +31,31 @@ export const useLeaderboard = () => {
       try {
         setLoading(true);
         
-        // Fetch top 10 leaderboard
-        const { data: leaderboardData, error: leaderboardError } = await supabase
+        // Fetch top 10 leaderboard with manual join
+        const { data: pointsData, error: pointsError } = await supabase
           .from('points')
-          .select(`
-            id,
-            user_id,
-            total_points,
-            current_streak,
-            profiles!inner(name, avatar_url)
-          `)
+          .select('id, user_id, total_points, current_streak')
           .order('total_points', { ascending: false })
           .limit(10);
 
-        if (leaderboardError) throw leaderboardError;
-        setLeaderboard(leaderboardData || []);
+        if (pointsError) throw pointsError;
+
+        // Fetch profiles for the users in the leaderboard
+        const userIds = pointsData?.map(p => p.user_id) || [];
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        // Combine the data
+        const leaderboardData = pointsData?.map(point => ({
+          ...point,
+          profiles: profilesData?.filter(profile => profile.id === point.user_id) || []
+        })) || [];
+
+        setLeaderboard(leaderboardData);
 
         // Fetch current user's rank if logged in
         if (user) {

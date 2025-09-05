@@ -101,6 +101,8 @@ const Profile = () => {
       case 'lesson': return <BookOpen className="w-4 h-4 text-primary" />;
       case 'quiz': return <Target className="w-4 h-4 text-secondary" />;
       case 'achievement': return <Award className="w-4 h-4 text-badge-gold" />;
+      case 'checkin': return <Calendar className="w-4 h-4 text-success" />;
+      case 'general': return <TrendingUp className="w-4 h-4 text-accent" />;
       default: return <TrendingUp className="w-4 h-4 text-accent" />;
     }
   };
@@ -189,7 +191,7 @@ const Profile = () => {
               </div>
               
               <div className="text-center p-4 bg-gradient-card rounded-lg border shadow-card">
-                <div className="font-bold text-secondary text-lg">{Math.round((userData.correctAnswers / userData.totalAnswers) * 100)}%</div>
+                <div className="font-bold text-secondary text-lg">{userData.quizAccuracy}%</div>
                 <div className="text-xs text-muted-foreground">Quiz Accuracy</div>
               </div>
             </div>
@@ -240,19 +242,31 @@ const Profile = () => {
                 <CardDescription>Badges you've unlocked on your learning journey</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4">
-                  {achievements.filter(badge => badge.earned).map((badge, index) => (
-                    <Badge
-                      key={index}
-                      type={badge.type}
-                      title={badge.title}
-                      description={badge.description}
-                      icon={badge.icon}
-                      earned={badge.earned}
-                      size="md"
-                    />
-                  ))}
-                </div>
+                {achievementsLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-muted-foreground mt-2">Loading achievements...</p>
+                  </div>
+                ) : achievements.filter(badge => badge.earned).length > 0 ? (
+                  <div className="grid grid-cols-3 gap-4">
+                    {achievements.filter(badge => badge.earned).map((badge, index) => (
+                      <Badge
+                        key={index}
+                        type={badge.type}
+                        title={badge.title}
+                        description={badge.description}
+                        icon={badge.icon as 'award' | 'star' | 'crown' | 'zap'}
+                        earned={badge.earned}
+                        size="md"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Award className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No achievements yet. Start learning to earn your first badge!</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -262,19 +276,26 @@ const Profile = () => {
                 <CardDescription>Badges you can earn next</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4">
-                  {achievements.filter(badge => !badge.earned).map((badge, index) => (
-                    <Badge
-                      key={index}
-                      type={badge.type}
-                      title={badge.title}
-                      description={badge.description}
-                      icon={badge.icon}
-                      earned={badge.earned}
-                      size="md"
-                    />
-                  ))}
-                </div>
+                {achievementsLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-muted-foreground mt-2">Loading achievements...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-4">
+                    {achievements.filter(badge => !badge.earned).map((badge, index) => (
+                      <Badge
+                        key={index}
+                        type={badge.type}
+                        title={badge.title}
+                        description={badge.description}
+                        icon={badge.icon as 'award' | 'star' | 'crown' | 'zap'}
+                        earned={badge.earned}
+                        size="md"
+                      />
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -313,18 +334,30 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg bg-gradient-card">
-                    <div className="flex items-center space-x-3">
-                      {getActivityIcon(activity.type)}
-                      <div>
-                        <p className="font-medium">{activity.activity}</p>
-                        <p className="text-sm text-muted-foreground">{formatDate(activity.date)}</p>
-                      </div>
-                    </div>
-                    <PointsDisplay points={activity.points} size="sm" />
+                {activityLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-muted-foreground mt-2">Loading activity...</p>
                   </div>
-                ))}
+                ) : recentActivity.length > 0 ? (
+                  recentActivity.map((activity, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg bg-gradient-card">
+                      <div className="flex items-center space-x-3">
+                        {getActivityIcon(activity.activity_type)}
+                        <div>
+                          <p className="font-medium">{activity.activity}</p>
+                          <p className="text-sm text-muted-foreground">{formatDate(activity.created_at)}</p>
+                        </div>
+                      </div>
+                      <PointsDisplay points={activity.points} size="sm" />
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No recent activity. Start learning to see your progress here!</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

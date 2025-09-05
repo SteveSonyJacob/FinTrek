@@ -2,10 +2,11 @@
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for profiles table
-CREATE POLICY "Users can view their own profile" 
+-- Allow all users to view all profiles (needed for leaderboard)
+CREATE POLICY "Users can view all profiles for leaderboard" 
 ON public.profiles 
 FOR SELECT 
-USING (auth.uid() = id);
+USING (true);
 
 CREATE POLICY "Users can update their own profile" 
 ON public.profiles 
