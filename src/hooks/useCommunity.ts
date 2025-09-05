@@ -29,6 +29,7 @@ export const useDiscussions = () => {
       try {
         setLoading(true);
         
+        // Fetch discussions without requiring a join so missing profile rows don't fail the query
         const { data, error } = await supabase
           .from('discussions')
           .select(`
@@ -39,8 +40,7 @@ export const useDiscussions = () => {
             is_pinned,
             created_at,
             updated_at,
-            user_id,
-            profiles!inner(name, avatar_url)
+            user_id
           `)
           .order('is_pinned', { ascending: false })
           .order('updated_at', { ascending: false })
@@ -64,15 +64,17 @@ export const useDiscussions = () => {
 
             return {
               ...discussion,
+              profiles: [], // profile data is optional; UI falls back to Anonymous
               reply_count: repliesResult.count || 0,
               like_count: likesResult.count || 0
-            };
+            } as Discussion;
           })
         );
 
         setDiscussions(discussionsWithCounts);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch discussions');
+        console.error('Failed to fetch discussions:', err);
+        setError('Failed to fetch discussions');
       } finally {
         setLoading(false);
       }

@@ -57,8 +57,8 @@ export const useUserPoints = () => {
             .insert([
               {
                 user_id: user.id,
-                total_points: 0,
-                current_streak: 0,
+                total_points: 15, // include initial daily check-in reward
+                current_streak: 1, // start at 1 day streak on signup
               }
             ])
             .select()
@@ -67,6 +67,32 @@ export const useUserPoints = () => {
           if (insertError) throw insertError;
           setPoints(newData);
         } else {
+          // One-time backfill A: streak >= 1 but points == 0 → set points to 15
+          if ((data.current_streak || 0) >= 1 && (data.total_points || 0) === 0) {
+            const { data: updated, error: updateError } = await supabase
+              .from('points')
+              .update({ total_points: 15 })
+              .eq('user_id', user.id)
+              .select()
+              .single();
+            if (!updateError && updated) {
+              setPoints(updated);
+              return;
+            }
+          }
+          // One-time backfill B: brand-new users with both zero → set to (15, 1)
+          if ((data.current_streak || 0) === 0 && (data.total_points || 0) === 0) {
+            const { data: updatedZero, error: updErrZero } = await supabase
+              .from('points')
+              .update({ total_points: 15, current_streak: 1 })
+              .eq('user_id', user.id)
+              .select()
+              .single();
+            if (!updErrZero && updatedZero) {
+              setPoints(updatedZero);
+              return;
+            }
+          }
           setPoints(data);
         }
       } catch (err) {

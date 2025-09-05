@@ -70,7 +70,7 @@ const PointsDisplay = ({
       className
     )}>
       <Coins className={cn(iconSizes[size], "text-secondary")} />
-      <span className="font-bold text-secondary-foreground">
+      <span className="font-bold text-secondary-foreground dark:text-white">
         {displayPoints.toLocaleString()}
       </span>
       {showAnimation && isAnimating && (

@@ -38,27 +38,21 @@ const Dashboard = () => {
     ? Math.round((quizResults.reduce((acc, result) => acc + (result.score / result.total_questions * 100), 0) / quizResults.length))
     : 0;
 
-  // Generate weekly progress - only show completed for days with actual activity
+  // Weekly activity: mark the most recent N days complete based on current streak (bounded by 7)
   const weeklyProgress = useMemo(() => {
-    const today = new Date();
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay()); // Start from Sunday
-    
-    return days.map((day, index) => {
-      const dayDate = new Date(startOfWeek);
-      dayDate.setDate(startOfWeek.getDate() + index);
-      
-      // For new users, show no completed days initially
-      // In a real app, you'd check actual user activity from the database
-      const isCompleted = false; // Start with no completed days for new users
-      
-      return {
-        day,
-        completed: isCompleted
-      };
-    });
-  }, []);
+    const streak = Math.max(0, Math.min(7, points?.current_streak || 0));
+    const todayIdx = new Date().getDay(); // 0..6 (Sun..Sat)
+    const completedSet = new Set<number>();
+    for (let i = 0; i < streak; i++) {
+      const idx = (todayIdx - i + 7) % 7; // mark backwards from today
+      completedSet.add(idx);
+    }
+    return days.map((day, idx) => ({
+      day,
+      completed: completedSet.has(idx)
+    }));
+  }, [points]);
 
   // Get recent earned achievements (limit to 3 for display)
   const recentBadges = useMemo(() => {
@@ -67,9 +61,9 @@ const Dashboard = () => {
       .filter(achievement => achievement.earned)
       .slice(0, 3)
       .map(achievement => ({
-        type: achievement.type as const,
+        type: (achievement.type as 'gold' | 'silver' | 'bronze' | 'diamond'),
         title: achievement.title,
-        icon: achievement.icon as const
+        icon: (achievement.icon as 'award' | 'star' | 'crown' | 'zap')
       }));
   }, [achievements, achievementsLoading]);
 
@@ -123,7 +117,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <PointsDisplay points={points?.total_points || 0} size="lg" />
-              <p className="text-xs text-success mt-2">+150 today</p>
+              <p className="text-xs text-success mt-2">+15 today</p>
             </CardContent>
           </Card>
         )}

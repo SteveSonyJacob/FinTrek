@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Badge from '@/components/gamification/Badge';
 import PointsDisplay from '@/components/gamification/PointsDisplay';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
+import { useUserPoints, useUserProgress } from '@/hooks/useUserData';
 import { 
   Trophy, 
   Medal, 
@@ -24,13 +25,15 @@ import {
  */
 const Leaderboard = () => {
   const { leaderboard, userRank, loading, error } = useLeaderboard();
+  const { points } = useUserPoints();
+  const { progress } = useUserProgress();
 
   const weeklyChallenge = {
     title: 'Learning Streak Master',
     description: 'Complete lessons for 7 days straight',
-    progress: 5,
-    target: 7,
-    reward: 500,
+    progress: progress ? progress.completed_lessons : 0,
+    target: progress ? progress.total_lessons : 0,
+    reward: points ? points.total_points : 0,
     endDate: '2 days left'
   };
 
@@ -250,18 +253,22 @@ const Leaderboard = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Progress</span>
-                  <span>{weeklyChallenge.progress}/{weeklyChallenge.target}</span>
+                  <span>
+                    {weeklyChallenge.target > 0
+                      ? `${weeklyChallenge.progress}/${weeklyChallenge.target}`
+                      : '0/0'}
+                  </span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2">
                   <div 
                     className="bg-gradient-secondary h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(weeklyChallenge.progress / weeklyChallenge.target) * 100}%` }}
+                    style={{ width: `${weeklyChallenge.target > 0 ? (weeklyChallenge.progress / weeklyChallenge.target) * 100 : 0}%` }}
                   />
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <PointsDisplay points={weeklyChallenge.reward} size="sm" />
+                <PointsDisplay points={weeklyChallenge.reward} size="sm" className="text-white dark:text-white" />
                 <span className="text-xs text-muted-foreground">{weeklyChallenge.endDate}</span>
               </div>
             </CardContent>
