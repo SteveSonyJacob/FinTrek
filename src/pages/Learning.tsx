@@ -229,7 +229,7 @@ const Learning = () => {
                 {/* Action Button */}
                 <div className="pt-2">
                   {module.is_unlocked ? (
-                    <Link to={`/lesson/${module.id}`}>
+                    <Link to={`/lesson/${module.id}`} state={{ moduleTitle: module.title }}>
                       <Button className="w-full bg-gradient-primary hover:scale-105 transition-transform">
                         <PlayCircle className="w-4 h-4 mr-2" />
                         {module.completed_lessons > 0 ? 'Continue Learning' : 'Start Module'}
