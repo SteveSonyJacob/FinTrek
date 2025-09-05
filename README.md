@@ -11,6 +11,7 @@ It provides interactive quizzes, progress tracking, and personalized reports —
 - 📊 **Progress Tracking** – Monitor daily learning activity and improvements.  
 - 📑 **Report Generation** – View and download reports to track performance over time.  
 - 🎨 **Modern UI** – Built with Tailwind CSS and shadcn-ui for a clean and responsive interface.
+- 💬 **AI Finance Assistant** – Ask finance-related questions with the built-in chatbot powered by Gemini API.
 
 ---
 
@@ -26,6 +27,7 @@ It provides interactive quizzes, progress tracking, and personalized reports —
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v18+ recommended)  
 - npm (comes with Node.js)
+- Supabase project & API keys
 
 ### Installation
 Clone the repository and install dependencies:
