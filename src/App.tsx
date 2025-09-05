@@ -22,7 +22,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Layout
 import AppLayout from "./components/layout/AppLayout";
-
+import Chatbot from "./components/Chatbot";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -49,6 +49,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
+          <Chatbot />
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
