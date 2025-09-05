@@ -14,6 +14,7 @@ import { ThemeToggle } from '../ui/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserPoints } from '@/hooks/useUserData';
+import { useUser } from '@supabase/auth-helpers-react';
 
 /**
  * Main navigation component with gamified elements and theme toggle
@@ -23,6 +24,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { points, loading: pointsLoading } = useUserPoints();
+  const user = useUser();
   
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
@@ -87,6 +89,10 @@ const Navbar = () => {
               variant="outline"
               size="sm"
               onClick={async () => {
+                // best-effort mark offline
+                if (user?.id) {
+                  try { await supabase.from('profiles').update({ is_online: false }).eq('id', user.id); } catch {}
+                }
                 await supabase.auth.signOut();
                 navigate('/auth', { replace: true });
               }}

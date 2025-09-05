@@ -32,23 +32,23 @@ export const useDiscussions = () => {
         // Fetch discussions without requiring a join so missing profile rows don't fail the query
         const { data, error } = await supabase
           .from('discussions')
-          .select(`
-            id,
-            title,
-            content,
-            category,
-            is_pinned,
-            created_at,
-            updated_at,
-            user_id
-          `)
+          .select(`*`)
           .order('is_pinned', { ascending: false })
           .order('updated_at', { ascending: false })
           .limit(20);
 
         if (error) throw error;
 
-        // Get reply and like counts
+        // Fetch related profiles for discussion authors
+        const userIds = (data || []).map(d => d.user_id);
+        const uniqueUserIds = Array.from(new Set(userIds));
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', uniqueUserIds);
+        if (profilesError) throw profilesError;
+
+        // Get reply and like counts, attach profiles
         const discussionsWithCounts = await Promise.all(
           (data || []).map(async (discussion) => {
             const [repliesResult, likesResult] = await Promise.all([
@@ -64,12 +64,31 @@ export const useDiscussions = () => {
 
             return {
               ...discussion,
-              profiles: [], // profile data is optional; UI falls back to Anonymous
+              profiles: (profilesData || []).filter(p => p.id === discussion.user_id),
               reply_count: repliesResult.count || 0,
               like_count: likesResult.count || 0
             } as Discussion;
           })
         );
+
+        // Backfill author_name for older posts missing it
+        const backfillPromises: Promise<any>[] = [];
+        for (const d of discussionsWithCounts) {
+          const needsBackfill = !(d as any).author_name || (d as any).author_name === '';
+          if (needsBackfill) {
+            const profile = (d as any).profiles?.[0];
+            const fallbackName = profile?.name || `User ${(d as any).user_id?.slice(0, 8)}`;
+            backfillPromises.push(
+              supabase
+                .from('discussions')
+                .update({ author_name: fallbackName })
+                .eq('id', (d as any).id)
+            );
+          }
+        }
+        if (backfillPromises.length > 0) {
+          await Promise.allSettled(backfillPromises);
+        }
 
         setDiscussions(discussionsWithCounts);
       } catch (err) {
@@ -115,6 +134,7 @@ export const useCreateDiscussion = () => {
 
     try {
       setLoading(true);
+      const authorName = (user.user_metadata as any)?.full_name || user.email || `User ${user.id.slice(0, 8)}`;
       
       const { data, error } = await supabase
         .from('discussions')
@@ -123,7 +143,8 @@ export const useCreateDiscussion = () => {
             user_id: user.id,
             title,
             content,
-            category
+            category,
+            author_name: authorName
           }
         ])
         .select()
@@ -154,18 +175,23 @@ export const useCommunityStats = () => {
       try {
         setLoading(true);
         
-        const [discussionsResult, weeklyResult] = await Promise.all([
+        const [discussionsResult, weeklyResult, onlineProfiles] = await Promise.all([
           supabase
             .from('discussions')
             .select('id', { count: 'exact', head: true }),
           supabase
             .from('discussions')
             .select('id', { count: 'exact', head: true })
-            .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+            .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+          // Optional: count online members if you store presence (fallback 0 otherwise)
+          supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_online', true)
         ]);
 
         setStats({
-          activeMembers: 1247, // This would come from user analytics
+          activeMembers: onlineProfiles?.count || 0,
           totalDiscussions: discussionsResult.count || 0,
           weeklyDiscussions: weeklyResult.count || 0
         });

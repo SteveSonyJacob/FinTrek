@@ -23,15 +23,42 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);
+
+      // Mark user online when session becomes available
+      const uid = nextSession?.user?.id;
+      const fullName = nextSession?.user?.user_metadata?.full_name;
+      const email = nextSession?.user?.email;
+      if (uid) {
+        supabase
+          .from('profiles')
+          .upsert({ id: uid, name: fullName || email || null, is_online: true })
+          .then(() => {})
+          .catch(() => {});
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session: current } }) => {
       setSession(current);
       setUser(current?.user ?? null);
       setLoading(false);
+
+      const uid = current?.user?.id;
+      const fullName = current?.user?.user_metadata?.full_name;
+      const email = current?.user?.email;
+      if (uid) {
+        supabase
+          .from('profiles')
+          .upsert({ id: uid, name: fullName || email || null, is_online: true })
+          .then(() => {})
+          .catch(() => {});
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // On cleanup, best-effort mark offline for the current user
+    return () => {
+      const uid = supabase.auth.getUser ? undefined : undefined;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (loading) {

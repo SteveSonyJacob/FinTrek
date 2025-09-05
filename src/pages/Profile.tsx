@@ -58,37 +58,6 @@ const Profile = () => {
     return () => { isMounted = false; };
   }, []);
 
-  // Mock data for learning goals
-  const mockRecentActivity = [
-    { 
-      id: '1',
-      created_at: new Date().toISOString(), 
-      activity: 'Completed lesson "Investment Basics"', 
-      points: 50, 
-      activity_type: 'lesson' 
-    },
-    { 
-      id: '2',
-      created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), 
-      activity: 'Perfect score on Daily Quiz', 
-      points: 100, 
-      activity_type: 'quiz' 
-    },
-    { 
-      id: '3',
-      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), 
-      activity: 'Started "Trading Strategies" module', 
-      points: 25, 
-      activity_type: 'milestone' 
-    },
-    { 
-      id: '4',
-      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), 
-      activity: 'Earned "Week Warrior" badge', 
-      points: 200, 
-      activity_type: 'achievement' 
-    }
-  ];
 
   const learningGoals = [
     { title: 'Complete Investment Basics', progress: 75, target: 'This week' },
@@ -137,7 +106,8 @@ const Profile = () => {
       </div>
     );
   }
-
+if (userData.level === "Beginner Trader") userData.level = "Beginner";
+if (userData.level === "Next: Advanced Trader") userData.level = "Advanced";
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Profile Header */}

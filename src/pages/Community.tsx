@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useDiscussions, useCreateDiscussion, useCommunityStats } from '@/hooks/useCommunity';
+import { useUser } from '@supabase/auth-helpers-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
@@ -30,100 +32,22 @@ const Community = () => {
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const user = useUser();
 
   // Dynamic data from Supabase
   const { discussions, loading: discussionsLoading, error: discussionsError } = useDiscussions();
   const { createDiscussion, loading: creatingDiscussion } = useCreateDiscussion();
   const { stats, loading: statsLoading } = useCommunityStats();
 
-  // Mock data for friends (would be replaced with real data later)
-  const mockDiscussions = [
-    {
-      id: 1,
-      title: 'Best beginner investment strategies?',
-      content: 'I just started my investment journey and looking for some solid beginner-friendly strategies. What would you recommend for someone with $1000 to start?',
-      author: {
-        name: 'Sarah Wilson',
-        avatar: '',
-        badge: 'Beginner Trader',
-        level: 'Bronze'
-      },
-      category: 'Investing',
-      replies: 12,
-      likes: 24,
-      isPinned: true,
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      lastActivity: new Date(Date.now() - 30 * 60 * 1000) // 30 minutes ago
-    },
-    {
-      id: 2,
-      title: 'Emergency fund vs. paying off debt - what comes first?',
-      content: 'I have about $5000 in credit card debt and no emergency fund. Should I focus on building an emergency fund first or pay off the debt?',
-      author: {
-        name: 'Mike Chen',
-        avatar: '',
-        badge: 'Finance Explorer',
-        level: 'Silver'
-      },
-      category: 'Personal Finance',
-      replies: 8,
-      likes: 15,
-      isPinned: false,
-      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      lastActivity: new Date(Date.now() - 1 * 60 * 60 * 1000)
-    },
-    {
-      id: 3,
-      title: 'Cryptocurrency for beginners - worth it?',
-      content: 'Everyone is talking about crypto. Is it worth getting into as a beginner, or should I stick to traditional investments?',
-      author: {
-        name: 'Emma Rodriguez',
-        avatar: '',
-        badge: 'Learning Enthusiast',
-        level: 'Bronze'
-      },
-      category: 'Cryptocurrency',
-      replies: 18,
-      likes: 32,
-      isPinned: false,
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      lastActivity: new Date(Date.now() - 2 * 60 * 60 * 1000)
-    }
-  ];
 
-  const friends = [
-    {
-      id: 1,
-      name: 'Alex Thompson',
-      avatar: '',
-      status: 'online',
-      points: 4520,
-      lastSeen: 'Active now'
-    },
-    {
-      id: 2,
-      name: 'Lisa Park',
-      avatar: '',
-      status: 'offline',
-      points: 3240,
-      lastSeen: '2 hours ago'
-    },
-    {
-      id: 3,
-      name: 'David Kumar',
-      avatar: '',
-      status: 'online',
-      points: 5680,
-      lastSeen: 'Active now'
-    }
-  ];
+  const friends: Array<{ id: number; name: string; avatar: string; status: 'online' | 'offline'; points: number; lastSeen: string; }> = [];
 
   const categories = [
-    { name: 'Personal Finance', count: 45, color: 'text-primary' },
-    { name: 'Investing', count: 32, color: 'text-success' },
-    { name: 'Trading', count: 28, color: 'text-secondary' },
-    { name: 'Cryptocurrency', count: 19, color: 'text-accent' },
-    { name: 'General', count: 67, color: 'text-muted-foreground' }
+    { name: 'Personal Finance', count: 0, color: 'text-primary' },
+    { name: 'Investing', count: 0, color: 'text-success' },
+    { name: 'Trading', count: 0, color: 'text-secondary' },
+    { name: 'Cryptocurrency', count: 0, color: 'text-accent' },
+    { name: 'General', count: 0, color: 'text-muted-foreground' }
   ];
 
   const handleCreatePost = async () => {
@@ -143,8 +67,28 @@ const Community = () => {
 
   const DiscussionCard = ({ discussion }: { discussion: any }) => {
     const profile = discussion.profiles?.[0];
-    const authorName = profile?.name || 'Anonymous User';
+    const derivedCurrentUserName = user?.user_metadata?.full_name || user?.email || (user ? `User ${user.id.slice(0, 8)}` : undefined);
+    const derivedOtherUserName = discussion?.user_id ? `User ${String(discussion.user_id).slice(0, 8)}` : 'User';
+    const authorName = profile?.name
+      || discussion.author_name
+      || (discussion.user_id === user?.id ? derivedCurrentUserName : undefined)
+      || derivedOtherUserName;
     
+    const canDelete = discussion.user_id === user?.id;
+
+    const handleDelete = async () => {
+      try {
+        const confirmed = window.confirm('Delete this discussion? This cannot be undone.');
+        if (!confirmed) return;
+        const { error } = await supabase.from('discussions').delete().eq('id', discussion.id);
+        if (error) throw error;
+        toast.success('Discussion deleted');
+      } catch (err) {
+        console.error('Failed to delete discussion:', err);
+        toast.error('Failed to delete. Please try again.');
+      }
+    };
+
     return (
     <Card className="shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer">
       <CardContent className="p-6">
@@ -168,9 +112,16 @@ const Community = () => {
               </div>
             </div>
           </div>
-          {discussion.is_pinned && (
-            <Pin className="w-4 h-4 text-secondary" />
-          )}
+          <div className="flex items-center space-x-2">
+            {discussion.is_pinned && (
+              <Pin className="w-4 h-4 text-secondary" />
+            )}
+            {canDelete && (
+              <Button variant="outline" size="sm" onClick={handleDelete}>
+                Delete
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3">
