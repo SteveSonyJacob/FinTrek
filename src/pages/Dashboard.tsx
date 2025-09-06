@@ -131,7 +131,6 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-streak">{points?.current_streak || 0} days</div>
-              <p className="text-xs text-muted-foreground mt-2">Personal best: 12 days</p>
             </CardContent>
           </Card>
         )}
